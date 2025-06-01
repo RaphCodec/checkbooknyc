@@ -62,7 +62,7 @@ class CheckbookNYCClient:
                 for node in root.findall(".//transaction")
             ]
         except Exception as e:
-            logger.error(f"Failed to parse repsonse: {e}")
+            logger.error(f"Failed to parse response: {e}")
             logger.error(f"Error: {xml_content}")
             return xml_content
 
@@ -152,14 +152,38 @@ class Contracts(CheckbookNYCClient):
         category: Literal["all", "expense", "revenue"],
         records_from: Optional[int] = None,
         max_records: Optional[int] = None,
+        get_all_records: bool = False,
         **filters: Dict[str, Union[str, int, float]],
     ):
         """
         Sends a POST request to the contracts endpoint with given filter criteria.
         """
-        xml_body = self.build_contracts_request(
-            status, category, records_from, max_records, **filters
-        )
+        if get_all_records:
+            return self._fetch_all_records(status, category, **filters)
 
-        logger.debug(xml_body)
-        return self._parse(self._post(xml_body).decode("utf-8"))
+        else:
+            xml_body = self.build_contracts_request(
+                status, category, records_from, max_records, **filters
+            )
+            return self._parse(self._post(xml_body).decode("utf-8"))
+
+    def _fetch_all_records(
+        self,
+        status: Literal["active", "pending", "registered"],
+        category: Literal["all", "expense", "revenue"],
+        **filters: Dict[str, Union[str, int, float]],
+    ):
+        records_from = 1
+        max_records = 20_000
+        while True:
+            xml_body = self.build_contracts_request(
+                status, category, records_from, max_records, **filters
+            )
+            records = self._parse(self._post(xml_body).decode("utf-8"))
+            yield records
+
+            if not records or len(records) < 20_000:
+                logger.info("No more records to fetch")
+                break
+
+            records_from += 20_000
