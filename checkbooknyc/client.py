@@ -1,8 +1,8 @@
-import requests
-from fake_useragent import UserAgent
-from typing import Literal, List, Dict, Any, TypedDict, Optional, Union
-from loguru import logger
+from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
 from xml.etree import ElementTree as ET
+
+import requests
+from loguru import logger
 
 
 class Criteria(TypedDict):
@@ -14,15 +14,11 @@ class Criteria(TypedDict):
 class CheckbookNYCClient:
     def __init__(
         self,
+        session: requests.Session,
         base_url: str = "https://www.checkbooknyc.com/api",
-        fake_agent: bool = False,
     ):
-        ua = UserAgent()
         self.base_url = base_url
-        self.headers: Dict[str, str] = {
-            "Content-Type": "application/xml",
-            "User-Agent": ua.random if fake_agent else "python-requests",
-        }
+        self.ses = session
 
     def _base_request(
         self,
@@ -54,11 +50,11 @@ class CheckbookNYCClient:
         """
 
     def _post(self, xml_request: str) -> bytes:
-        response = requests.post(self.base_url, headers=self.headers, data=xml_request)
+        response = self.ses.post(self.base_url, data=xml_request)
         response.raise_for_status()
         return response.content
 
-    def _parse(self, xml_content: str) -> List[Dict[str, Any]]|str:
+    def _parse(self, xml_content: str) -> List[Dict[str, Any]] | str:
         try:
             root = ET.fromstring(xml_content)
             return [
@@ -74,10 +70,10 @@ class CheckbookNYCClient:
 class Contracts(CheckbookNYCClient):
     def __init__(
         self,
+        session: requests.Session,
         base_url: str = "https://www.checkbooknyc.com/api",
-        fake_agent: bool = False,
     ):
-        super().__init__(base_url, fake_agent)
+        super().__init__(session, base_url)
         self.data_type = "Contracts"
 
     def build_contracts_request(
