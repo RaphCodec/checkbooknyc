@@ -26,6 +26,7 @@ class CheckbookNYCClient:
         criteria: List[Criteria],
         records_from: Optional[int] = None,
         max_records: Optional[int] = None,
+        response_columns: Optional[List[str]] = None
     ) -> str:
         criteria = criteria or []
         criteria_xml = "".join(
@@ -46,6 +47,10 @@ class CheckbookNYCClient:
             {f"<records_from>{records_from}</records_from>" if records_from else ""}
             {f"<max_records>{max_records}</max_records>" if max_records else ""}
             <search_criteria>{criteria_xml}</search_criteria>
+            <response_columns>
+
+{''.join(f"                <column>{column}</column>\n" for column in response_columns) if response_columns else ""}
+            </response_columns>
         </request>
         """
 
@@ -82,6 +87,7 @@ class Contracts(CheckbookNYCClient):
         category: str,
         records_from: Optional[int],
         max_records: Optional[int],
+        response_columns: Optional[List[str]] = None,
         **filters: Dict[str, Union[str, int, float]],
     ) -> str:
         """
@@ -143,7 +149,7 @@ class Contracts(CheckbookNYCClient):
                 }
             )
 
-        xml = self._base_request(self.data_type, criteria, records_from, max_records)
+        xml = self._base_request(self.data_type, criteria, records_from, max_records, response_columns)
         return xml
 
     def fetch(
@@ -153,17 +159,18 @@ class Contracts(CheckbookNYCClient):
         records_from: Optional[int] = None,
         max_records: Optional[int] = None,
         get_all_records: bool = False,
+        response_columns: Optional[List[str]] = None,
         **filters: Dict[str, Union[str, int, float]],
     ):
         """
         Sends a POST request to the contracts endpoint with given filter criteria.
         """
         if get_all_records:
-            return self._fetch_all_records(status, category, **filters)
+            return self._fetch_all_records(status, category, response_columns, **filters)
 
         else:
             xml_body = self.build_contracts_request(
-                status, category, records_from, max_records, **filters
+                status, category, records_from, max_records, response_columns, **filters
             )
             return self._parse(self._post(xml_body).decode("utf-8"))
 
@@ -171,14 +178,16 @@ class Contracts(CheckbookNYCClient):
         self,
         status: Literal["active", "pending", "registered"],
         category: Literal["all", "expense", "revenue"],
+        response_columns: Optional[List[str]] = None,
         **filters: Dict[str, Union[str, int, float]],
     ):
         records_from = 1
         max_records = 20_000
         while True:
             xml_body = self.build_contracts_request(
-                status, category, records_from, max_records, **filters
+                status, category, records_from, max_records, response_columns, **filters
             )
+            
             records = self._parse(self._post(xml_body).decode("utf-8"))
             yield records
 
