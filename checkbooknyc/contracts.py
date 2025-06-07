@@ -1,14 +1,11 @@
-from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
-from xml.etree import ElementTree as ET
+from typing import Dict, List, Literal, Optional, Union
 
 import requests
 from loguru import logger
-from .client import CheckbookNYC, Criteria
+from ._base import BaseClient, Criteria
 
 
-
-
-class Contracts(CheckbookNYC):
+class Contracts(BaseClient):
     def __init__(
         self,
         session: requests.Session,
@@ -82,9 +79,10 @@ class Contracts(CheckbookNYC):
                 }
             )
 
-        xml_body = self._base_request(self.data_type, criteria, records_from, max_records, response_columns)
+        xml_body = self._base_request(
+            self.data_type, criteria, records_from, max_records, response_columns
+        )
         return self._parse(self._post(xml_body).decode("utf-8"))
-
 
     def fetch_all(
         self,

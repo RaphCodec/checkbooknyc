@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
+from typing import Any, Dict, List, Optional, TypedDict
 from xml.etree import ElementTree as ET
 
 import requests
@@ -11,7 +11,7 @@ class Criteria(TypedDict):
     value: str
 
 
-class CheckbookNYC:
+class BaseClient:
     def __init__(
         self,
         session: requests.Session,
@@ -26,7 +26,7 @@ class CheckbookNYC:
         criteria: List[Criteria],
         records_from: Optional[int] = None,
         max_records: Optional[int] = None,
-        response_columns: Optional[List[str]] = None
+        response_columns: Optional[List[str]] = None,
     ) -> str:
         criteria = criteria or []
         criteria_xml = "".join(
@@ -49,7 +49,7 @@ class CheckbookNYC:
             <search_criteria>{criteria_xml}</search_criteria>
             <response_columns>
 
-{''.join(f"                <column>{column}</column>\n" for column in response_columns) if response_columns else ""}
+{"".join(f"                <column>{column}</column>\n" for column in response_columns) if response_columns else ""}
             </response_columns>
         </request>
         """
@@ -70,4 +70,3 @@ class CheckbookNYC:
             logger.error(f"Failed to parse response: {e}")
             logger.error(f"Error: {xml_content}")
             return xml_content
-

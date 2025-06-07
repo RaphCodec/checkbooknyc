@@ -1,12 +1,11 @@
-from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
-from xml.etree import ElementTree as ET
+from typing import Dict, List, Optional, Union
 
 import requests
 from loguru import logger
-from .client import CheckbookNYC, Criteria
+from ._base import BaseClient, Criteria
 
 
-class Payroll(CheckbookNYC):
+class Payroll(BaseClient):
     def __init__(
         self,
         session: requests.Session,
@@ -56,9 +55,10 @@ class Payroll(CheckbookNYC):
                 }
             )
 
-        xml_body = self._base_request(self.data_type, criteria, records_from, max_records, response_columns)
+        xml_body = self._base_request(
+            self.data_type, criteria, records_from, max_records, response_columns
+        )
         return self._parse(self._post(xml_body).decode("utf-8"))
-
 
     def fetch_all_records(
         self,
@@ -68,9 +68,7 @@ class Payroll(CheckbookNYC):
         records_from = 1
         max_records = 20_000
         while True:
-            records = self.fetch(
-                records_from, max_records, response_columns, **filters
-            )
+            records = self.fetch(records_from, max_records, response_columns, **filters)
 
             yield records
 
@@ -79,4 +77,3 @@ class Payroll(CheckbookNYC):
                 break
 
             records_from += 20_000
-
