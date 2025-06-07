@@ -14,7 +14,7 @@ class Budget(CheckbookNYC):
         super().__init__(session, base_url)
         self.data_type = "Budget"
 
-    def build_budget_request(
+    def fetch(
         self,
         records_from: Optional[int],
         max_records: Optional[int],
@@ -64,29 +64,11 @@ class Budget(CheckbookNYC):
                 }
             )
 
-        xml = self._base_request(self.data_type, criteria, records_from, max_records, response_columns)
-        return xml
+        xml_body = self._base_request(self.data_type, criteria, records_from, max_records, response_columns)
+        return self._parse(self._post(xml_body).decode("utf-8"))
 
-    def fetch(
-        self,
-        records_from: Optional[int] = None,
-        max_records: Optional[int] = None,
-        get_all_records: bool = False,
-        response_columns: Optional[List[str]] = None,
-        **filters: Dict[str, Union[str, int, float]],
-    ):
-        """
-        Sends a POST request to the budget endpoint with given filter criteria.
-        """
-        if get_all_records:
-            return self._fetch_all_records(response_columns, **filters)
-        else:
-            xml_body = self.build_budget_request(
-                records_from, max_records, response_columns, **filters
-            )
-            return self._parse(self._post(xml_body).decode("utf-8"))
 
-    def _fetch_all_records(
+    def fetch_all(
         self,
         response_columns: Optional[List[str]] = None,
         **filters: Dict[str, Union[str, int, float]],
@@ -94,14 +76,14 @@ class Budget(CheckbookNYC):
         records_from = 1
         max_records = 20_000
         while True:
-            xml_body = self.build_budget_request(
+            records = self.fetch(
                 records_from, max_records, response_columns, **filters
             )
-            records = self._parse(self._post(xml_body).decode("utf-8"))
+
             yield records
 
             if not records or len(records) < 20_000:
-                logger.info("No more records to fetch")
+                logger.info("All records fetched.")
                 break
 
             records_from += 20_000

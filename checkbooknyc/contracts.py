@@ -17,12 +17,12 @@ class Contracts(CheckbookNYC):
         super().__init__(session, base_url)
         self.data_type = "Contracts"
 
-    def build_contracts_request(
+    def fetch(
         self,
-        status: str,
-        category: str,
-        records_from: Optional[int],
-        max_records: Optional[int],
+        status: Literal["active", "pending", "registered"],
+        category: Literal["all", "expense", "revenue"],
+        records_from: Optional[int] = None,
+        max_records: Optional[int] = None,
         response_columns: Optional[List[str]] = None,
         **filters: Dict[str, Union[str, int, float]],
     ) -> str:
@@ -73,8 +73,7 @@ class Contracts(CheckbookNYC):
 
         for key, value in filters.items():
             if key not in field_type.keys():
-                logger.warning(f"Key: {key} is not valid and will be ignored.")
-                continue
+                raise ValueError(f"Parameter: {key} is not valid.")
             criteria.append(
                 {
                     "name": key,
@@ -83,32 +82,11 @@ class Contracts(CheckbookNYC):
                 }
             )
 
-        xml = self._base_request(self.data_type, criteria, records_from, max_records, response_columns)
-        return xml
+        xml_body = self._base_request(self.data_type, criteria, records_from, max_records, response_columns)
+        return self._parse(self._post(xml_body).decode("utf-8"))
 
-    def fetch(
-        self,
-        status: Literal["active", "pending", "registered"],
-        category: Literal["all", "expense", "revenue"],
-        records_from: Optional[int] = None,
-        max_records: Optional[int] = None,
-        get_all_records: bool = False,
-        response_columns: Optional[List[str]] = None,
-        **filters: Dict[str, Union[str, int, float]],
-    ):
-        """
-        Sends a POST request to the contracts endpoint with given filter criteria.
-        """
-        if get_all_records:
-            return self._fetch_all_records(status, category, response_columns, **filters)
 
-        else:
-            xml_body = self.build_contracts_request(
-                status, category, records_from, max_records, response_columns, **filters
-            )
-            return self._parse(self._post(xml_body).decode("utf-8"))
-
-    def _fetch_all_records(
+    def fetch_all(
         self,
         status: Literal["active", "pending", "registered"],
         category: Literal["all", "expense", "revenue"],
@@ -118,15 +96,14 @@ class Contracts(CheckbookNYC):
         records_from = 1
         max_records = 20_000
         while True:
-            xml_body = self.build_contracts_request(
+            records = self.fetch(
                 status, category, records_from, max_records, response_columns, **filters
             )
-            
-            records = self._parse(self._post(xml_body).decode("utf-8"))
+
             yield records
 
             if not records or len(records) < 20_000:
-                logger.info("No more records to fetch")
+                logger.info("All records fetched.")
                 break
 
             records_from += 20_000
