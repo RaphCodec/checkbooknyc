@@ -5,7 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "fake-useragent>=2.2.0",
     "loguru>=0.7.3",
     "pandas>=2.2.3",
     "requests>=2.32.3",
@@ -13,5 +12,9 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "fake-useragent>=2.2.0",
     "icecream>=2.1.4",
+    "pytest>=8.4.0",
+    "pytest-cov>=6.1.1",
+    "ruff>=0.11.13",
 ]
