@@ -70,17 +70,25 @@ class Contracts(BaseClient):
         ]
 
         if params:
-            for key, value in params.items():
-                if key not in field_type.keys():
-                    closest_match = difflib.get_close_matches(word=key, possibilities=field_type.keys(), n=3, cutoff=0.2)
-                    raise ValueError(f"Parameter: {key} is not valid. Closest potential matches: {closest_match}?")
-                criteria.append(
-                    {
-                        "name": key,
-                        "type": field_type[key],
-                        "value": str(value),  # ensure value is string
-                    }
+            invalid_keys = list(filter(lambda k: k not in field_type, params.keys()))
+            if invalid_keys:
+                closest_matches = {
+                    key: difflib.get_close_matches(word=key, possibilities=field_type.keys(), n=3, cutoff=0.2)
+                    for key in invalid_keys
+                }
+                raise ValueError(
+                    f"Invalid parameters: {invalid_keys}. Closest potential matches: {closest_matches}"
                 )
+            criteria.extend(
+                map(
+                    lambda item: {
+                        "name": item[0],
+                        "type": field_type[item[0]],
+                        "value": str(item[1]),
+                    },
+                    params.items(),
+                )
+            )
 
         xml_body = self._base_request(
             self.data_type, criteria, records_from, max_records, response_columns

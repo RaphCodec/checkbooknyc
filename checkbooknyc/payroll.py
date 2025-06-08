@@ -1,4 +1,5 @@
 from typing import Dict, List, Optional, Union
+import difflib
 
 import requests
 from loguru import logger
@@ -19,7 +20,7 @@ class Payroll(BaseClient):
         records_from: Optional[int],
         max_records: Optional[int],
         response_columns: Optional[List[str]] = None,
-        **filters: Dict[str, Union[str, int, float]],
+        params: Optional[Dict[str, Union[str, int, float]]] = None,
     ) -> str:
         """
         Builds a string XML request for the payroll endpoint using supported filters.
@@ -43,16 +44,25 @@ class Payroll(BaseClient):
 
         criteria: List[Criteria] = []
 
-        for key, value in filters.items():
-            if key not in field_type.keys():
-                logger.warning(f"Key: {key} is not valid and will be ignored.")
-                continue
-            criteria.append(
-                {
-                    "name": key,
-                    "type": field_type[key],
-                    "value": str(value),
+        if params:
+            invalid_keys = list(filter(lambda k: k not in field_type, params.keys()))
+            if invalid_keys:
+                closest_matches = {
+                    key: difflib.get_close_matches(word=key, possibilities=field_type.keys(), n=3, cutoff=0.2)
+                    for key in invalid_keys
                 }
+                raise ValueError(
+                    f"Invalid parameters: {invalid_keys}. Closest potential matches: {closest_matches}"
+                )
+            criteria.extend(
+                map(
+                    lambda item: {
+                        "name": item[0],
+                        "type": field_type[item[0]],
+                        "value": str(item[1]),
+                    },
+                    params.items(),
+                )
             )
 
         xml_body = self._base_request(
@@ -63,12 +73,12 @@ class Payroll(BaseClient):
     def fetch_all_records(
         self,
         response_columns: Optional[List[str]] = None,
-        **filters: Dict[str, Union[str, int, float]],
+        params: Optional[Dict[str, Union[str, int, float]]] = None,
     ):
         records_from = 1
         max_records = 20_000
         while True:
-            records = self.fetch(records_from, max_records, response_columns, **filters)
+            records = self.fetch(records_from, max_records, response_columns, params)
 
             yield records
 
