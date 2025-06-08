@@ -4,6 +4,7 @@ import difflib
 import requests
 from loguru import logger
 from ._base import BaseClient, Criteria
+from .data_params import get_params
 
 
 class Spending(BaseClient):
@@ -26,40 +27,16 @@ class Spending(BaseClient):
         Builds a string XML request for the spending endpoint using supported filters.
         """
 
-        field_type: Dict[str, str] = {
-            "fiscal_year": "value",
-            "payee_name": "value",
-            "payee_code": "value",
-            "vendor_code": "value",
-            "document_id": "value",
-            "agency_code": "value",
-            "issue_date": "range",
-            "department_code": "value",
-            "check_amount": "range",
-            "expense_category": "value",
-            "contract_id": "value",
-            "capital_project_code": "value",
-            "spending_category": "value",
-            "budget_name": "value",
-            "commodity_line": "value",
-            "entity_contract_number": "value",
-            "other_government_entities_code": "value",
-            "mwbe_category": "value",
-            "industry": "value",
-            "funding_source": "value",
-            "responsibility_center": "value",
-            "purchase_order_type": "value",
-            "amount_spent": "value",
-            "conditional_category": "value",
-        }
-
         criteria: List[Criteria] = []
 
         if params:
-            invalid_keys = list(filter(lambda k: k not in field_type, params.keys()))
+            parameters = get_params(data_type="Spending")
+            invalid_keys = list(filter(lambda k: k not in parameters, params.keys()))
             if invalid_keys:
                 closest_matches = {
-                    key: difflib.get_close_matches(word=key, possibilities=field_type.keys(), n=3, cutoff=0.2)
+                    key: difflib.get_close_matches(
+                        word=key, possibilities=parameters.keys(), n=3, cutoff=0.2
+                    )
                     for key in invalid_keys
                 }
                 raise ValueError(
@@ -69,7 +46,7 @@ class Spending(BaseClient):
                 map(
                     lambda item: {
                         "name": item[0],
-                        "type": field_type[item[0]],
+                        "type": parameters[item[0]],
                         "value": str(item[1]),
                     },
                     params.items(),

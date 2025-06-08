@@ -4,6 +4,7 @@ import difflib
 import requests
 from loguru import logger
 from ._base import BaseClient, Criteria
+from .data_params import get_params
 
 
 class Revenue(BaseClient):
@@ -26,36 +27,16 @@ class Revenue(BaseClient):
         Builds a string XML request for the revenue endpoint using supported filters.
         """
 
-        field_type: Dict[str, str] = {
-            "budget_fiscal_year": "value",
-            "fiscal_year": "value",
-            "agency_code": "value",
-            "revenue_class": "value",
-            "fund_class": "value",
-            "funding_class": "value",
-            "revenue_category": "value",
-            "revenue_source": "value",
-            "revenue_expense_category": "value",
-            "adopted": "range",
-            "modified": "range",
-            "recognized": "range",
-            "conditional_category": "value",
-            "remaining": "range",
-            "budget_type": "value",
-            "budget_name": "value",
-            "funding_source": "value",
-            "responsibility_center": "value",
-            "program": "value",
-            "project": "value",
-        }
-
         criteria: List[Criteria] = []
 
         if params:
-            invalid_keys = list(filter(lambda k: k not in field_type, params.keys()))
+            parameters = get_params(data_type="Revenue")
+            invalid_keys = list(filter(lambda k: k not in parameters, params.keys()))
             if invalid_keys:
                 closest_matches = {
-                    key: difflib.get_close_matches(word=key, possibilities=field_type.keys(), n=3, cutoff=0.2)
+                    key: difflib.get_close_matches(
+                        word=key, possibilities=parameters.keys(), n=3, cutoff=0.2
+                    )
                     for key in invalid_keys
                 }
                 raise ValueError(
@@ -65,7 +46,7 @@ class Revenue(BaseClient):
                 map(
                     lambda item: {
                         "name": item[0],
-                        "type": field_type[item[0]],
+                        "type": parameters[item[0]],
                         "value": str(item[1]),
                     },
                     params.items(),

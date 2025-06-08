@@ -4,6 +4,7 @@ import difflib
 import requests
 from loguru import logger
 from ._base import BaseClient, Criteria
+from .data_params import get_params
 
 
 class Budget(BaseClient):
@@ -26,38 +27,16 @@ class Budget(BaseClient):
         Builds a string XML request for the budget endpoint using supported filters.
         """
 
-        field_type: Dict[str, str] = {
-            "year": "value",
-            "budget_code": "value",
-            "budget_code_name": "value",
-            "agency_code": "value",
-            "department_code": "value",
-            "expense_category": "value",
-            "adopted": "range",
-            "modified": "range",
-            "pre_encumbered": "range",
-            "encumbered": "range",
-            "accrued_expense": "range",
-            "cash_expense": "range",
-            "post_adjustment": "range",
-            "conditional_category": "value",
-            "budget_type": "value",
-            "budget_name": "value",
-            "funding_source": "value",
-            "responsibility_center": "value",
-            "program": "value",
-            "project": "value",
-            "committed": "range",
-            "actual_amount": "range",
-        }
-
         criteria: List[Criteria] = []
 
         if params:
-            invalid_keys = list(filter(lambda k: k not in field_type, params.keys()))
+            parameters = get_params(data_type="Budget")
+            invalid_keys = list(filter(lambda k: k not in parameters, params.keys()))
             if invalid_keys:
                 closest_matches = {
-                    key: difflib.get_close_matches(word=key, possibilities=field_type.keys(), n=3, cutoff=0.2)
+                    key: difflib.get_close_matches(
+                        word=key, possibilities=parameters.keys(), n=3, cutoff=0.2
+                    )
                     for key in invalid_keys
                 }
                 raise ValueError(
@@ -67,7 +46,7 @@ class Budget(BaseClient):
                 map(
                     lambda item: {
                         "name": item[0],
-                        "type": field_type[item[0]],
+                        "type": parameters[item[0]],
                         "value": str(item[1]),
                     },
                     params.items(),

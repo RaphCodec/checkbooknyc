@@ -4,6 +4,7 @@ import difflib
 import requests
 from loguru import logger
 from ._base import BaseClient, Criteria
+from .data_params import get_params
 
 
 class Contracts(BaseClient):
@@ -28,34 +29,6 @@ class Contracts(BaseClient):
         Builds a string XML request for the contracts endpoint using supported filters.
         """
 
-        field_type: Dict[str, str] = {
-            "fiscal_year": "value",
-            "prime_vendor": "value",
-            "vendor_code": "value",
-            "contract_type": "value",
-            "agency_code": "value",
-            "contract_id": "value",
-            "award_method": "value",
-            "current_amount": "range",
-            "start_date": "range",
-            "end_date": "range",
-            "registration_date": "range",
-            "received_date": "range",
-            "budget_name": "value",
-            "commodity_line": "value",
-            "entity_contract_number": "value",
-            "other_government_entities_code": "value",
-            "mwbe_category": "value",
-            "industry": "value",
-            "contract_includes_sub_vendors": "value",
-            "sub_contract_status": "value",
-            "purchase_order_type": "value",
-            "approved_date": "value",
-            "responsibility_center": "value",
-            "conditional_category": "value",
-            "contract_class": "value",
-        }
-
         criteria: List[Criteria] = [
             {
                 "name": "status",
@@ -70,10 +43,13 @@ class Contracts(BaseClient):
         ]
 
         if params:
-            invalid_keys = list(filter(lambda k: k not in field_type, params.keys()))
+            parameters = get_params(data_type="Contracts")
+            invalid_keys = list(filter(lambda k: k not in parameters, params.keys()))
             if invalid_keys:
                 closest_matches = {
-                    key: difflib.get_close_matches(word=key, possibilities=field_type.keys(), n=3, cutoff=0.2)
+                    key: difflib.get_close_matches(
+                        word=key, possibilities=parameters.keys(), n=3, cutoff=0.2
+                    )
                     for key in invalid_keys
                 }
                 raise ValueError(
@@ -83,7 +59,7 @@ class Contracts(BaseClient):
                 map(
                     lambda item: {
                         "name": item[0],
-                        "type": field_type[item[0]],
+                        "type": parameters[item[0]],
                         "value": str(item[1]),
                     },
                     params.items(),
